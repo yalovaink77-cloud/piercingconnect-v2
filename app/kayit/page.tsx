@@ -45,23 +45,26 @@ export default function Kayit() {
         {error && <p className="text-red-400 mb-4">{error}</p>}
         <div className="flex flex-col gap-4">
           <div>
-            <label className="text-gray-300 text-base mb-2 block">Adiniz Soyadiniz</label>
+            <label className="text-gray-300 text-base mb-2 block">Adiniz Soyadiniz *</label>
             <input type="text" placeholder="Ornek: Ahmet Yilmaz" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, name: e.target.value})} />
           </div>
           <div>
-            <label className="text-gray-300 text-base mb-2 block">Telefon Numaraniz</label>
+            <label className="text-gray-300 text-base mb-2 block">Telefon Numaraniz *</label>
             <input type="tel" placeholder="05XX XXX XX XX" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, phone: e.target.value})} />
           </div>
           <div>
-            <label className="text-gray-300 text-base mb-2 block">E-posta (istege bagli)</label>
+            <label className="text-gray-300 text-base mb-2 block">E-posta</label>
             <input type="email" placeholder="ornek@email.com" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, email: e.target.value})} />
+            <div className="bg-orange-500 bg-opacity-20 border border-orange-500 rounded-xl p-3 mt-2">
+              <p className="text-white text-sm">E-posta adresinizi girerek kampanya ve happy hours bildirimlerinden ilk siz haberdar olun!</p>
+            </div>
           </div>
           <div>
             <label className="text-gray-300 text-base mb-2 block">Dogum Tarihiniz</label>
             <input type="date" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, birth_date: e.target.value})} />
           </div>
           <button onClick={handleSubmit} disabled={loading} className="bg-orange-500 text-white text-xl font-bold py-5 rounded-2xl mt-2">
-            {loading ? 'Kaydediliyor...' : 'Kayit Ol'}
+            {loading ? 'Kaydediliyor...' : 'Kayit Ol ve %10 Indirim Kazan'}
           </button>
         </div>
       </div>
