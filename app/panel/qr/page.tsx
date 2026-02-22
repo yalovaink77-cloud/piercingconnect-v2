@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import QRCode from 'qrcode'
 
 export default function QRSayfasi() {
-  const [url, setUrl] = useState('https://piercingconnect.vercel.app')
+  const [url, setUrl] = useState('https://piercingconnect-v2.vercel.app')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const router = useRouter()
 
@@ -20,22 +20,6 @@ export default function QRSayfasi() {
         width: 280,
         margin: 2,
         color: { dark: '#000000', light: '#ffffff' }
-      }, (err) => {
-        if (!err && canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d')
-          if (ctx) {
-            const size = 60
-            const x = (280 - size) / 2
-            const y = (280 - size) / 2
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(x - 5, y - 5, size + 10, size + 10)
-            ctx.fillStyle = '#000000'
-            ctx.font = 'bold 52px serif'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'middle'
-            ctx.fillText('Y', 140, 140)
-          }
-        }
       })
     }
   }, [url])
@@ -54,11 +38,9 @@ export default function QRSayfasi() {
       <div className="w-full max-w-sm mx-auto text-center">
         <a href="/panel" className="text-orange-400 text-lg mb-6 block text-left">Geri</a>
         <h1 className="text-2xl font-bold text-white mb-6">QR Kod Olustur</h1>
-
         <div className="bg-white p-4 rounded-2xl inline-block mb-6">
           <canvas ref={canvasRef} />
         </div>
-
         <div className="mb-4">
           <label className="text-gray-300 text-base mb-2 block text-left">QR Kod URL</label>
           <input
@@ -68,7 +50,6 @@ export default function QRSayfasi() {
             onChange={e => setUrl(e.target.value)}
           />
         </div>
-
         <button onClick={indir} className="bg-orange-500 text-white text-xl font-bold py-5 rounded-2xl w-full">
           QR Kodu Indir
         </button>
