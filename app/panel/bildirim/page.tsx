@@ -1,95 +1,61 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function Bildirim() {
-  const [mesaj, setMesaj] = useState('')
-  const [baslik, setBaslik] = useState('')
+export default function Kayit() {
+  const [form, setForm] = useState({ name: '', phone: '', email: '', birth_date: '' })
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [musteriler, setMusteriler] = useState<any[]>([])
+  const [error, setError] = useState('')
   const router = useRouter()
 
-  useEffect(() => {
-    if (localStorage.getItem('panel_auth') !== 'true') {
-      router.push('/panel/giris')
+  const handleSubmit = async () => {
+    if (!form.name || !form.phone) {
+      setError('Ad soyad ve telefon zorunludur')
       return
     }
-    const fetchMusteriler = async () => {
-      const { data } = await supabase.from('customers').select('*')
-      setMusteriler(data || [])
-    }
-    fetchMusteriler()
-  }, [])
-
-  const emailliMusteriler = musteriler.filter(m => m.email)
-
-  const gonder = async () => {
-    if (!baslik || !mesaj) return
     setLoading(true)
-    for (const musteri of emailliMusteriler) {
-      await fetch('/api/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: musteri.email,
-          subject: baslik,
-          message: mesaj
-        })
-      })
+    setError('')
+    const { data, error } = await supabase.from('customers').insert([form]).select().single()
+    if (error) {
+      setError('Bu telefon numarasi zaten kayitli olabilir')
+    } else {
+      localStorage.setItem('customer_id', data.id)
+      localStorage.setItem('customer_name', data.name)
+      router.push('/hesabim')
     }
     setLoading(false)
-    setSuccess(true)
-    setBaslik('')
-    setMesaj('')
   }
 
   return (
     <main className="min-h-screen bg-gray-950 p-6">
       <div className="w-full max-w-sm mx-auto">
-        <a href="/panel" className="text-orange-400 text-lg mb-6 block">Geri</a>
-        <h1 className="text-2xl font-bold text-white mb-2">Bildirim Gonder</h1>
-        <p className="text-gray-400 mb-6">E-posta giren kayitli musterilere mesaj gonder</p>
-
-        {success && (
-          <div className="bg-green-800 rounded-2xl p-4 mb-4">
-            <p className="text-green-300 font-semibold">{emailliMusteriler.length} musteriye e-posta gonderildi!</p>
-          </div>
-        )}
-
+        <a href="/giris" className="text-orange-400 text-lg mb-6 block">Geri</a>
+        <h1 className="text-2xl font-bold text-white mb-2">Kayit Ol</h1>
+        <p className="text-gray-400 mb-6">Kayit olun, sonraki hizmetinizde %10 indirim kazanin</p>
+        {error && <p className="text-red-400 mb-4">{error}</p>}
         <div className="flex flex-col gap-4">
-          <div className="bg-gray-800 rounded-2xl p-4">
-            <p className="text-gray-400 text-sm">Toplam kayitli musteri</p>
-            <p className="text-white text-2xl font-bold">{musteriler.length}</p>
-            <p className="text-orange-400 text-sm mt-1">E-posta giren: {emailliMusteriler.length}</p>
+          <div>
+            <label className="text-gray-300 text-base mb-2 block">Adiniz Soyadiniz</label>
+            <input type="text" placeholder="Ornek: Ahmet Yilmaz" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, name: e.target.value})} />
           </div>
           <div>
-            <label className="text-gray-300 text-base mb-2 block">Baslik</label>
-            <input
-              type="text"
-              placeholder="Ornek: Happy Hours, Kampanya"
-              value={baslik}
-              className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none"
-              onChange={e => setBaslik(e.target.value)}
-            />
+            <label className="text-gray-300 text-base mb-2 block">Telefon Numaraniz</label>
+            <input type="tel" placeholder="05XX XXX XX XX" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, phone: e.target.value})} />
           </div>
           <div>
-            <label className="text-gray-300 text-base mb-2 block">Mesaj</label>
-            <textarea
-              placeholder="Ornek: Bugun saat 15-18 arasi tum piercinglerde %20 indirim!"
-              rows={4}
-              value={mesaj}
-              className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none resize-none"
-              onChange={e => setMesaj(e.target.value)}
-            />
+            <label className="text-gray-300 text-base mb-2 block">E-posta</label>
+            <input type="email" placeholder="ornek@email.com" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, email: e.target.value})} />
+            <div className="bg-orange-500 bg-opacity-20 border border-orange-500 rounded-xl p-3 mt-2">
+              <p className="text-white text-sm">E-posta adresinizi girerek kampanya ve happy hours bildirimlerinden ilk siz haberdar olun!</p>
+            </div>
           </div>
-          <button
-            onClick={gonder}
-            disabled={loading || !baslik || !mesaj || emailliMusteriler.length === 0}
-            className="bg-orange-500 text-white text-xl font-bold py-5 rounded-2xl"
-          >
-            {loading ? 'Gonderiliyor...' : `${emailliMusteriler.length} Musteriye Gonder`}
+          <div>
+            <label className="text-gray-300 text-base mb-2 block">Dogum Tarihiniz</label>
+            <input type="date" className="w-full bg-gray-800 text-white text-lg p-4 rounded-2xl outline-none" onChange={e => setForm({...form, birth_date: e.target.value})} />
+          </div>
+          <button onClick={handleSubmit} disabled={loading} className="bg-orange-500 text-white text-xl font-bold py-5 rounded-2xl mt-2">
+            {loading ? 'Kaydediliyor...' : 'Kayit Ol ve %10 Indirim Kazan'}
           </button>
         </div>
       </div>
