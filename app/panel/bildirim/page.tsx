@@ -23,16 +23,22 @@ export default function Bildirim() {
     fetchMusteriler()
   }, [])
 
+  const emailliMusteriler = musteriler.filter(m => m.email)
+
   const gonder = async () => {
     if (!baslik || !mesaj) return
     setLoading(true)
-    await supabase.from('care_reminders').insert(
-      musteriler.map(m => ({
-        customer_id: m.id,
-        message: `${baslik}: ${mesaj}`,
-        scheduled_for: new Date().toISOString()
-      }))
-    )
+    for (const musteri of emailliMusteriler) {
+      await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: musteri.email,
+          subject: baslik,
+          message: mesaj
+        })
+      })
+    }
     setLoading(false)
     setSuccess(true)
     setBaslik('')
@@ -44,15 +50,20 @@ export default function Bildirim() {
       <div className="w-full max-w-sm mx-auto">
         <a href="/panel" className="text-orange-400 text-lg mb-6 block">Geri</a>
         <h1 className="text-2xl font-bold text-white mb-2">Bildirim Gonder</h1>
-        <p className="text-gray-400 mb-6">Tum kayitli musterilere mesaj gonder</p>
+        <p className="text-gray-400 mb-6">E-posta giren kayitli musterilere mesaj gonder</p>
 
         {success && (
           <div className="bg-green-800 rounded-2xl p-4 mb-4">
-            <p className="text-green-300 font-semibold">Bildirim kaydedildi! ({musteriler.length} musteri)</p>
+            <p className="text-green-300 font-semibold">{emailliMusteriler.length} musteriye e-posta gonderildi!</p>
           </div>
         )}
 
         <div className="flex flex-col gap-4">
+          <div className="bg-gray-800 rounded-2xl p-4">
+            <p className="text-gray-400 text-sm">Toplam kayitli musteri</p>
+            <p className="text-white text-2xl font-bold">{musteriler.length}</p>
+            <p className="text-orange-400 text-sm mt-1">E-posta giren: {emailliMusteriler.length}</p>
+          </div>
           <div>
             <label className="text-gray-300 text-base mb-2 block">Baslik</label>
             <input
@@ -73,18 +84,12 @@ export default function Bildirim() {
               onChange={e => setMesaj(e.target.value)}
             />
           </div>
-
-          <div className="bg-gray-800 rounded-2xl p-4">
-            <p className="text-gray-400 text-sm">Toplam kayitli musteri</p>
-            <p className="text-white text-2xl font-bold">{musteriler.length}</p>
-          </div>
-
           <button
             onClick={gonder}
-            disabled={loading || !baslik || !mesaj}
+            disabled={loading || !baslik || !mesaj || emailliMusteriler.length === 0}
             className="bg-orange-500 text-white text-xl font-bold py-5 rounded-2xl"
           >
-            {loading ? 'Gonderiliyor...' : 'Tum Musterilere Gonder'}
+            {loading ? 'Gonderiliyor...' : `${emailliMusteriler.length} Musteriye Gonder`}
           </button>
         </div>
       </div>
