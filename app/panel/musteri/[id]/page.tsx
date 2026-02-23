@@ -28,6 +28,17 @@ export default function MusteriDetay() {
     fetchData()
   }, [])
 
+  const bakimGunleri = (tarih: string) => {
+    const baslangic = new Date(tarih)
+    return [3, 7, 15, 30].map(gun => {
+      const d = new Date(baslangic)
+      d.setDate(d.getDate() + gun)
+      const bugun = new Date()
+      const gecti = d < bugun
+      return { gun, tarih: d.toLocaleDateString('tr-TR'), gecti }
+    })
+  }
+
   const hizmetEkle = async () => {
     if (!yeniHizmet.service_type) return
     const { data } = await supabase.from('services').insert([{
@@ -59,11 +70,8 @@ export default function MusteriDetay() {
             <p className="text-gray-400">{musteri.phone}</p>
             {musteri.email && <p className="text-gray-500 text-sm">{musteri.email}</p>}
             <p className="text-gray-600 text-sm">Kayit: {new Date(musteri.created_at).toLocaleDateString('tr-TR')}</p>
-            
             {!silOnay ? (
-              <button onClick={() => setSilOnay(true)} className="mt-3 text-red-400 text-sm">
-                Musteriyi Sil
-              </button>
+              <button onClick={() => setSilOnay(true)} className="mt-3 text-red-400 text-sm">Musteriyi Sil</button>
             ) : (
               <div className="mt-3 bg-red-900 rounded-xl p-3">
                 <p className="text-white text-sm mb-2">Emin misiniz? Bu islem geri alinamaz.</p>
@@ -78,9 +86,7 @@ export default function MusteriDetay() {
 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">Hizmet Gecmisi</h2>
-          <button onClick={() => setHizmetFormu(!hizmetFormu)} className="bg-orange-500 text-white px-4 py-2 rounded-xl font-semibold">
-            + Hizmet Ekle
-          </button>
+          <button onClick={() => setHizmetFormu(!hizmetFormu)} className="bg-orange-500 text-white px-4 py-2 rounded-xl font-semibold">+ Hizmet Ekle</button>
         </div>
 
         {hizmetFormu && (
@@ -101,6 +107,7 @@ export default function MusteriDetay() {
 
         {loading && <p className="text-gray-400">Yukleniyor...</p>}
         {!loading && hizmetler.length === 0 && <p className="text-gray-500">Henuz hizmet kaydi yok</p>}
+
         {hizmetler.map(h => (
           <div key={h.id} className="bg-gray-800 rounded-2xl p-4 mb-3">
             <div className="flex justify-between">
@@ -110,6 +117,19 @@ export default function MusteriDetay() {
             {h.body_area && <p className="text-orange-400 text-sm">{h.body_area}</p>}
             {h.description && <p className="text-gray-400 text-sm">{h.description}</p>}
             {h.artist_name && <p className="text-gray-600 text-sm">Sanatci: {h.artist_name}</p>}
+
+            <div className="mt-3 border-t border-gray-700 pt-3">
+              <p className="text-gray-400 text-sm font-semibold mb-2">Bakim Takvimi</p>
+              <div className="grid grid-cols-2 gap-2">
+                {bakimGunleri(h.service_date).map(b => (
+                  <div key={b.gun} className={`rounded-xl p-2 text-center ${b.gecti ? 'bg-gray-700' : 'bg-orange-900'}`}>
+                    <p className={`text-sm font-bold ${b.gecti ? 'text-gray-400' : 'text-orange-300'}`}>{b.gun}. Gun</p>
+                    <p className={`text-xs ${b.gecti ? 'text-gray-500' : 'text-orange-400'}`}>{b.tarih}</p>
+                    {!b.gecti && <p className="text-xs text-orange-300 mt-1">SMS at!</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
       </div>
