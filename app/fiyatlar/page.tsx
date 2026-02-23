@@ -40,7 +40,7 @@ export default function Fiyatlar() {
 
         <div className="mt-6 bg-orange-500 rounded-2xl p-4 text-center">
           <p className="text-white font-bold text-lg">Randevu için bizi arayın</p>
-          <p className="text-white text-xl font-bold mt-1">0532 000 00 00</p>
+          <p className="text-white text-xl font-bold mt-1">05357410710</p>
         </div>
       </div>
     </main>
