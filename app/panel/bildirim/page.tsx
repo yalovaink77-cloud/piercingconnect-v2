@@ -3,13 +3,27 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+type Musteri = {
+  id: string
+  name: string
+  email: string
+  phone: string
+}
+
+type Secim = {
+  email: boolean
+  sms: boolean
+}
+
 export default function Bildirim() {
   const [mesaj, setMesaj] = useState('')
   const [baslik, setBaslik] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [musteriler, setMusteriler] = useState<any[]>([])
-  const [secili, setSecili] = useState<string[]>([])
+  const [musteriler, setMusteriler] = useState<Musteri[]>([])
+  const [secimler, setSecimler] = useState<Record<string, Secim>>({})
+  const [acik, setAcik] = useState<string | null>(null)
+  const [hizmetler, setHizmetler] = useState<Record<string, any[]>>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -18,42 +32,65 @@ export default function Bildirim() {
       return
     }
     const fetchMusteriler = async () => {
-      const { data } = await supabase.from('customers').select('*').not('email', 'is', null)
+      const { data } = await supabase.from('customers').select('*')
       setMusteriler(data || [])
     }
     fetchMusteriler()
   }, [])
 
-  const toggleSecim = (id: string) => {
-    setSecili(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
-  }
-
-  const tumunuSec = () => {
-    if (secili.length === musteriler.length) {
-      setSecili([])
-    } else {
-      setSecili(musteriler.map(m => m.id))
+  const toggleAcik = async (id: string) => {
+    if (acik === id) {
+      setAcik(null)
+      return
+    }
+    setAcik(id)
+    if (!hizmetler[id]) {
+      const { data } = await supabase.from('services').select('*').eq('customer_id', id).order('created_at', { ascending: false })
+      setHizmetler(prev => ({ ...prev, [id]: data || [] }))
     }
   }
+
+  const toggleKanal = (id: string, kanal: 'email' | 'sms') => {
+    setSecimler(prev => ({
+      ...prev,
+      [id]: {
+        email: kanal === 'email' ? !(prev[id]?.email ?? false) : (prev[id]?.email ?? false),
+        sms: kanal === 'sms' ? !(prev[id]?.sms ?? false) : (prev[id]?.sms ?? false),
+      }
+    }))
+  }
+
+  const seciliSayisi = Object.values(secimler).filter(s => s.email || s.sms).length
 
   const gonder = async () => {
-    if (!baslik || !mesaj || secili.length === 0) return
+    if (!baslik || !mesaj || seciliSayisi === 0) return
     setLoading(true)
-    const hedefler = musteriler.filter(m => secili.includes(m.id))
-    for (const musteri of hedefler) {
-      await fetch('/api/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: musteri.email,
-          subject: baslik,
-          message: mesaj
+
+    for (const [id, secim] of Object.entries(secimler)) {
+      const musteri = musteriler.find(m => m.id === id)
+      if (!musteri) continue
+
+      if (secim.email && musteri.email) {
+        await fetch('/api/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: musteri.email,
+            subject: baslik,
+            message: mesaj
+          })
         })
-      })
+      }
+
+      if (secim.sms) {
+        // SMS entegrasyonu buraya gelecek (Netgsm)
+        console.log(`SMS gonderilecek: ${musteri.phone} - ${mesaj}`)
+      }
     }
+
     setLoading(false)
     setSuccess(true)
-    setSecili([])
+    setSecimler({})
     setBaslik('')
     setMesaj('')
   }
@@ -63,11 +100,11 @@ export default function Bildirim() {
       <div className="w-full max-w-sm mx-auto">
         <a href="/panel" className="text-orange-400 text-lg mb-6 block">Geri</a>
         <h1 className="text-2xl font-bold text-white mb-2">Bildirim Gonder</h1>
-        <p className="text-gray-400 mb-4">Gondermek istediginiz musterileri secin</p>
+        <p className="text-gray-400 mb-4">Musteri secin ve gonderim kanalini belirleyin</p>
 
         {success && (
           <div className="bg-green-800 rounded-2xl p-4 mb-4">
-            <p className="text-green-300 font-semibold">E-postalar gonderildi!</p>
+            <p className="text-green-300 font-semibold">Bildirimler gonderildi!</p>
           </div>
         )}
 
@@ -94,38 +131,69 @@ export default function Bildirim() {
           </div>
 
           <div className="bg-gray-800 rounded-2xl p-4">
-            <div className="flex justify-between items-center mb-3">
-              <p className="text-white font-semibold">Musteriler ({musteriler.length})</p>
-              <button onClick={tumunuSec} className="text-orange-400 text-sm">
-                {secili.length === musteriler.length ? 'Secimi Kaldir' : 'Tumunu Sec'}
-              </button>
-            </div>
-            {musteriler.length === 0 && (
-              <p className="text-gray-500 text-sm">E-posta giren musteri yok</p>
-            )}
+            <p className="text-white font-semibold mb-3">Musteriler ({musteriler.length})</p>
             {musteriler.map(m => (
-              <div
-                key={m.id}
-                onClick={() => toggleSecim(m.id)}
-                className={`flex items-center gap-3 p-3 rounded-xl mb-2 cursor-pointer ${secili.includes(m.id) ? 'bg-orange-900' : 'bg-gray-900'}`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${secili.includes(m.id) ? 'bg-orange-500 border-orange-500' : 'border-gray-500'}`}>
-                  {secili.includes(m.id) && <span className="text-white text-xs">✓</span>}
+              <div key={m.id} className="bg-gray-900 rounded-xl mb-2 overflow-hidden">
+                <div
+                  className={`flex items-center justify-between p-3 cursor-pointer ${secimler[m.id]?.email || secimler[m.id]?.sms ? 'border-l-4 border-orange-500' : ''}`}
+                  onClick={() => toggleAcik(m.id)}
+                >
+                  <div>
+                    <p className="text-white text-sm font-semibold">{m.name}</p>
+                    <p className="text-gray-500 text-xs">{m.phone}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {secimler[m.id]?.email && <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-lg">📧</span>}
+                    {secimler[m.id]?.sms && <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-lg">📱</span>}
+                    <span className="text-gray-400 ml-1">{acik === m.id ? '▲' : '▼'}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white text-sm font-semibold">{m.name}</p>
-                  <p className="text-gray-400 text-xs">{m.email}</p>
-                </div>
+
+                {acik === m.id && (
+                  <div className="px-3 pb-3 border-t border-gray-700 pt-3">
+                    {m.email && <p className="text-gray-400 text-xs mb-1">📧 {m.email}</p>}
+                    <p className="text-gray-400 text-xs mb-3">📞 {m.phone}</p>
+
+                    {hizmetler[m.id]?.length > 0 ? (
+                      <div className="mb-3">
+                        <p className="text-gray-500 text-xs mb-1">Hizmetler:</p>
+                        {hizmetler[m.id].map(h => (
+                          <p key={h.id} className="text-orange-400 text-xs">
+                            {h.service_type} {h.body_area ? `- ${h.body_area}` : ''} ({new Date(h.service_date).toLocaleDateString('tr-TR')})
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 text-xs mb-3">Hizmet kaydi yok</p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleKanal(m.id, 'email') }}
+                        disabled={!m.email}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold ${secimler[m.id]?.email ? 'bg-orange-500 text-white' : 'bg-gray-700 text-gray-300'} ${!m.email ? 'opacity-30' : ''}`}
+                      >
+                        📧 E-posta
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleKanal(m.id, 'sms') }}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold ${secimler[m.id]?.sms ? 'bg-orange-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+                      >
+                        📱 SMS
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
           <button
             onClick={gonder}
-            disabled={loading || !baslik || !mesaj || secili.length === 0}
+            disabled={loading || !baslik || !mesaj || seciliSayisi === 0}
             className="bg-orange-500 text-white text-xl font-bold py-5 rounded-2xl"
           >
-            {loading ? 'Gonderiliyor...' : `${secili.length} Musteriye Gonder`}
+            {loading ? 'Gonderiliyor...' : `${seciliSayisi} Musteriye Gonder`}
           </button>
         </div>
       </div>
