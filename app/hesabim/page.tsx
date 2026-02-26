@@ -14,17 +14,16 @@ export default function Hesabim() {
 
   useEffect(() => {
     const id = localStorage.getItem('customer_id')
-    const name = localStorage.getItem('customer_name')
     if (!id) {
       router.push('/giris')
       return
     }
     const fetchData = async () => {
-      const { data: musteri } = await supabase.from('customers').select('*').eq('id', id).single()
-      setMusteri(musteri)
-      if (musteri?.email) setEmailKaydedildi(true)
-      const { data: hizmetler } = await supabase.from('services').select('*').eq('customer_id', id).order('created_at', { ascending: false })
-      setHizmetler(hizmetler || [])
+      const { data: m } = await supabase.from('customers').select('*').eq('id', id).single()
+      setMusteri(m)
+      if (m?.email) setEmailKaydedildi(true)
+      const { data: h } = await supabase.from('services').select('*').eq('customer_id', id).order('created_at', { ascending: false })
+      setHizmetler(h || [])
       setLoading(false)
     }
     fetchData()
@@ -90,19 +89,26 @@ export default function Hesabim() {
           </div>
         )}
 
+        <a href="/randevu" className="bg-gray-800 text-white text-xl font-bold py-5 rounded-2xl w-full block text-center mb-6">
+          Randevu Al
+        </a>
+
         <h2 className="text-xl font-bold text-white mb-4">Hizmet Gecmisiniz</h2>
         {loading && <p className="text-gray-400">Yukleniyor...</p>}
         {!loading && hizmetler.length === 0 && (
           <div className="bg-gray-800 rounded-2xl p-4 text-center">
             <p className="text-gray-400">Henuz hizmet kaydiniz yok</p>
-            <a href="/randevu" className="text-orange-400 font-semibold mt-2 block">Randevu Al</a>
           </div>
         )}
         {hizmetler.map(h => (
           <div key={h.id} className="bg-gray-800 rounded-2xl p-4 mb-3">
-            <p className="text-white font-semibold">{h.service_type}</p>
-            <p className="text-gray-400 text-sm">{h.description}</p>
-            <p className="text-gray-600 text-sm">{new Date(h.service_date).toLocaleDateString('tr-TR')}</p>
+            <div className="flex justify-between">
+              <p className="text-white font-semibold">{h.service_type}</p>
+              <p className="text-gray-500 text-sm">{new Date(h.service_date).toLocaleDateString('tr-TR')}</p>
+            </div>
+            {h.body_area && <p className="text-orange-400 text-sm">{h.body_area}</p>}
+            {h.description && <p className="text-gray-400 text-sm">{h.description}</p>}
+            {h.artist_name && <p className="text-gray-600 text-sm">Sanatci: {h.artist_name}</p>}
           </div>
         ))}
       </div>
